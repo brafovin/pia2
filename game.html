@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dino Brettspiel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  #app { display: flex; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+
+  #board-wrap { flex: 1; }
+  h1 { text-align: center; font-size: 1.6rem; margin-bottom: 12px; color: #a8ff78; text-shadow: 0 0 12px #a8ff78; }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 3px;
+    background: #16213e;
+    border: 3px solid #0f3460;
+    border-radius: 10px;
+    padding: 6px;
+  }
+
+  .cell {
+    aspect-ratio: 1;
+    background: #0f3460;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    position: relative;
+    transition: background 0.2s;
+    min-width: 0;
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .cell .cell-num {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: 0.45rem;
+    color: #555;
+    z-index: 1;
+  }
+
+  .cell.has-star { background: #3d2b00; box-shadow: 0 0 10px #ffd700; }
+  .cell.has-mushroom { background: #1a2e1a; }
+  .cell.has-key { background: #2e2a1a; }
+  .cell.has-doubleDice { background: #1a1a3e; }
+  .cell.has-gate { background: #2e1a2e; box-shadow: 0 0 8px #ff00ff44; }
+
+  .piece {
+    font-size: 1rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+    z-index: 2;
+  }
+
+  .item-icon { font-size: 0.9rem; z-index: 1; }
+
+  #sidebar {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panel {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .panel h2 { font-size: 1rem; color: #a8ff78; margin-bottom: 8px; }
+
+  .player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+
+  .player-row.active { border-color: #a8ff78; background: #0a2010; }
+  .player-row .avatar { font-size: 1.4rem; }
+  .player-row .pname { font-weight: bold; font-size: 0.85rem; }
+  .player-row .ppos { color: #aaa; font-size: 0.75rem; }
+  .player-row .pitems { font-size: 0.75rem; color: #ffd700; }
+
+  #dice-area { text-align: center; }
+
+  #dice-display {
+    font-size: 4rem;
+    margin: 8px 0;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .dice-face {
+    background: #fff;
+    color: #1a1a2e;
+    border-radius: 12px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+  }
+
+  #roll-btn {
+    background: linear-gradient(135deg, #a8ff78, #78ffd6);
+    color: #1a1a2e;
+    border: none;
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 4px 12px rgba(168,255,120,0.3);
+    width: 100%;
+  }
+
+  #roll-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(168,255,120,0.5); }
+  #roll-btn:active:not(:disabled) { transform: translateY(0); }
+  #roll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #log {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-entry {
+    font-size: 0.78rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #0f1e3a;
+    border-left: 3px solid #0f3460;
+    line-height: 1.4;
+  }
+
+  .log-entry.player { border-left-color: #a8ff78; }
+  .log-entry.cpu1 { border-left-color: #ff6b6b; }
+  .log-entry.cpu2 { border-left-color: #ffd700; }
+  .log-entry.system { border-left-color: #78ffd6; font-style: italic; }
+  .log-entry.win { border-left-color: #ffd700; background: #2a2000; font-weight: bold; }
+
+  #legend { display: flex; flex-direction: column; gap: 4px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+  .legend-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+
+  #star-info { color: #ffd700; font-size: 0.85rem; margin-top: 4px; }
+
+  .score-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 2px 0; }
+  .score-row .score-name { display: flex; align-items: center; gap: 6px; }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .bounce { animation: bounce 0.4s ease 3; }
+
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #overlay.show { display: flex; }
+  #overlay-box {
+    background: #16213e;
+    border: 3px solid #ffd700;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+  }
+  #overlay-box h2 { font-size: 2rem; color: #ffd700; margin-bottom: 12px; }
+  #overlay-box p { font-size: 1.1rem; margin-bottom: 20px; }
+  #restart-btn {
+    background: linear-gradient(135deg, #ffd700, #ff6b00);
+    color: #1a1a2e;
+    border: none;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .rolling { animation: spin 0.1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="overlay-box">
+    <h2 id="win-title">🏆 Gewonnen!</h2>
+    <p id="win-msg"></p>
+    <button id="restart-btn" onclick="initGame()">Neues Spiel</button>
+  </div>
+</div>
+
+<div id="app">
+  <div id="board-wrap">
+    <h1>🦕 Dino Brettspiel 🦕</h1>
+    <div id="board"></div>
+  </div>
+
+  <div id="sidebar">
+    <div class="panel">
+      <h2>👥 Spieler</h2>
+      <div class="player-info" id="player-info"></div>
+    </div>
+
+    <div class="panel" id="dice-area">
+      <h2>🎲 Würfel</h2>
+      <div id="dice-display"></div>
+      <button id="roll-btn" onclick="rollDice()">WÜRFELN!</button>
+    </div>
+
+    <div class="panel">
+      <h2>📜 Ereignisse</h2>
+      <div id="log"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📖 Legende</h2>
+      <div id="legend">
+        <div class="legend-row"><span class="legend-icon">🦕</span> Du (Dino)</div>
+        <div class="legend-row"><span class="legend-icon">🦖</span> CPU Gegner 1</div>
+        <div class="legend-row"><span class="legend-icon">🦎</span> CPU Gegner 2</div>
+        <div class="legend-row"><span class="legend-icon">⭐</span> Stern (Ziel) – bewegt sich!</div>
+        <div class="legend-row"><span class="legend-icon">🍄</span> Pilz: Bei Wurf 2 → +3 Felder extra</div>
+        <div class="legend-row"><span class="legend-icon">🗝️</span> Schlüssel: Öffnet Geheimtor</div>
+        <div class="legend-row"><span class="legend-icon">🎲</span> Doppelwürfel: 2×W10!</div>
+        <div class="legend-row"><span class="legend-icon">🚪</span> Geheimtor: Abkürzung mit Schlüssel</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BOARD_SIZE = 100;
+const ITEMS = { mushroom: '🍄', key: '🗝️', doubleDice: '🎲', gate: '🚪' };
+const PLAYERS = [
+  { id: 0, name: 'Du (Dino)', emoji: '🦕', cls: 'player', isHuman: true },
+  { id: 1, name: 'CPU Rex',   emoji: '🦖', cls: 'cpu1',   isHuman: false },
+  { id: 2, name: 'CPU Raptor',emoji: '🦎', cls: 'cpu2',   isHuman: false },
+];
+
+let state = {};
+
+function initGame() {
+  document.getElementById('overlay').classList.remove('show');
+
+  state = {
+    positions: [0, 0, 0],
+    items: [[], [], []],
+    currentPlayer: 0,
+    starPos: randomStar(),
+    cells: buildCells(),
+    rolling: false,
+    starMoveCounter: 0,
+  };
+
+  renderBoard();
+  renderSidebar();
+  addLog('Spiel gestartet! Zuerst ist 🦕 Du dran.', 'system');
+  updateRollBtn();
+}
+
+function randomStar() {
+  return Math.floor(Math.random() * 90) + 9;
+}
+
+function buildCells() {
+  const cells = Array(BOARD_SIZE).fill(null).map(() => ({ item: null }));
+  const positions = new Set();
+
+  const itemDist = [
+    { type: 'mushroom', count: 6 },
+    { type: 'key',      count: 4 },
+    { type: 'doubleDice', count: 4 },
+    { type: 'gate',     count: 3 },
+  ];
+
+  itemDist.forEach(({ type, count }) => {
+    let placed = 0;
+    while (placed < count) {
+      const p = Math.floor(Math.random() * 98) + 1;
+      if (!positions.has(p)) {
+        positions.add(p);
+        cells[p].item = type;
+        placed++;
+      }
+    }
+  });
+
+  return cells;
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = `cell-${i}`;
+
+    const num = document.createElement('span');
+    num.className = 'cell-num';
+    num.textContent = i + 1;
+    cell.appendChild(num);
+
+    if (i === state.starPos) {
+      cell.classList.add('has-star');
+      const icon = document.createElement('span');
+      icon.className = 'item-icon';
+      icon.textContent = '⭐';
+      cell.appendChild(icon);
+    }
+
+    const cellData = state.cells[i];
+    if (cellData && cellData.item) {
+      cell.classList.add('has-' + cellData.item);
+      const icon = document.createElement('span');
+      icon.className = 'item-icon';
+      icon.textContent = ITEMS[cellData.item];
+      cell.appendChild(icon);
+    }
+
+    PLAYERS.forEach(p => {
+      if (state.positions[p.id] === i) {
+        const piece = document.createElement('span');
+        piece.className = 'piece';
+        piece.textContent = p.emoji;
+        cell.appendChild(piece);
+      }
+    });
+
+    board.appendChild(cell);
+  }
+}
+
+function renderSidebar() {
+  const info = document.getElementById('player-info');
+  info.innerHTML = '';
+  PLAYERS.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'player-row' + (state.currentPlayer === p.id ? ' active' : '');
+    row.id = `prow-${p.id}`;
+
+    const itemStr = state.items[p.id].map(i => ITEMS[i]).join('') || '–';
+    row.innerHTML = `
+      <span class="avatar">${p.emoji}</span>
+      <div>
+        <div class="pname">${p.name}</div>
+        <div class="ppos">Feld ${state.positions[p.id] + 1}</div>
+        <div class="pitems">Items: ${itemStr}</div>
+      </div>
+    `;
+    info.appendChild(row);
+  });
+}
+
+function addLog(msg, cls = '') {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (cls ? ' ' + cls : '');
+  entry.textContent = msg;
+  log.prepend(entry);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function updateRollBtn() {
+  const btn = document.getElementById('roll-btn');
+  const isHuman = PLAYERS[state.currentPlayer].isHuman;
+  btn.disabled = !isHuman || state.rolling;
+}
+
+async function rollDice() {
+  if (state.rolling) return;
+  await takeTurn(0);
+}
+
+async function takeTurn(playerId) {
+  state.rolling = true;
+  updateRollBtn();
+
+  const p = PLAYERS[playerId];
+  const hasDouble = state.items[playerId].includes('doubleDice');
+  const numDice = hasDouble ? 2 : 1;
+
+  const diceDisplay = document.getElementById('dice-display');
+
+  let rolls = [];
+  for (let n = 0; n < numDice; n++) {
+    rolls.push(0);
+  }
+
+  diceDisplay.innerHTML = '';
+  const faces = [];
+  for (let n = 0; n < numDice; n++) {
+    const face = document.createElement('div');
+    face.className = 'dice-face';
+    face.textContent = '?';
+    diceDisplay.appendChild(face);
+    faces.push(face);
+  }
+
+  await animateDice(faces, 600);
+
+  for (let n = 0; n < numDice; n++) {
+    rolls[n] = Math.floor(Math.random() * 10) + 1;
+    faces[n].textContent = rolls[n];
+  }
+
+  let total = rolls.reduce((a, b) => a + b, 0);
+  let bonusMsg = '';
+
+  if (rolls.includes(2) && state.items[playerId].includes('mushroom')) {
+    total += 3;
+    bonusMsg = ' 🍄 +3 Bonus!';
+  }
+
+  addLog(`${p.emoji} ${p.name} würfelt ${rolls.join('+')}${rolls.length > 1 ? '=' + (rolls.reduce((a,b)=>a+b,0)) : ''}${bonusMsg} → ${total} Felder`, p.cls);
+
+  await movePlayer(playerId, total);
+
+  state.rolling = false;
+  nextTurn();
+}
+
+function animateDice(faces, duration) {
+  return new Promise(resolve => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      faces.forEach(f => f.textContent = Math.floor(Math.random() * 10) + 1);
+      if (Date.now() - start >= duration) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 60);
+  });
+}
+
+async function movePlayer(playerId, steps) {
+  const p = PLAYERS[playerId];
+  let pos = state.positions[playerId];
+
+  for (let s = 0; s < steps; s++) {
+    pos = Math.min(pos + 1, BOARD_SIZE - 1);
+    state.positions[playerId] = pos;
+    renderBoard();
+    await sleep(80);
+
+    if (pos === BOARD_SIZE - 1) {
+      pos = 0;
+      state.positions[playerId] = 0;
+      addLog(`${p.emoji} ${p.name} überquert Feld 100 und startet neu!`, p.cls);
+      renderBoard();
+      await sleep(300);
+    }
+  }
+
+  await checkCell(playerId);
+}
+
+async function checkCell(playerId) {
+  const p = PLAYERS[playerId];
+  const pos = state.positions[playerId];
+
+  if (pos === state.starPos) {
+    winGame(playerId);
+    return;
+  }
+
+  const cellData = state.cells[pos];
+  if (cellData && cellData.item) {
+    const item = cellData.item;
+
+    if (item === 'gate') {
+      if (state.items[playerId].includes('key')) {
+        const keyIdx = state.items[playerId].indexOf('key');
+        state.items[playerId].splice(keyIdx, 1);
+        const shortcut = Math.min(pos + Math.floor(Math.random() * 15) + 10, BOARD_SIZE - 1);
+        addLog(`${p.emoji} ${p.name} nutzt das 🚪 Geheimtor mit dem 🗝️ Schlüssel! Sprung auf Feld ${shortcut + 1}!`, p.cls);
+        state.positions[playerId] = shortcut;
+        renderBoard();
+        await sleep(400);
+        await checkCell(playerId);
+        return;
+      } else {
+        addLog(`${p.emoji} ${p.name} steht am 🚪 Geheimtor – braucht noch einen 🗝️ Schlüssel!`, p.cls);
+      }
+    } else if (!state.items[playerId].includes(item) || item === 'mushroom') {
+      if (item !== 'gate') {
+        if (!state.items[playerId].includes(item)) {
+          state.items[playerId].push(item);
+        }
+        addLog(`${p.emoji} ${p.name} sammelt ${ITEMS[item]}!`, p.cls);
+        state.cells[pos].item = null;
+        renderBoard();
+      }
+    }
+  }
+
+  state.starMoveCounter++;
+  if (state.starMoveCounter % 8 === 0) {
+    const oldStar = state.starPos;
+    state.starPos = randomStar();
+    addLog(`⭐ Der Stern teleportiert von Feld ${oldStar + 1} zu Feld ${state.starPos + 1}!`, 'system');
+    renderBoard();
+    await sleep(300);
+  }
+
+  renderSidebar();
+}
+
+function winGame(playerId) {
+  const p = PLAYERS[playerId];
+  addLog(`🏆 ${p.name} erreicht den ⭐ Stern und GEWINNT!`, 'win');
+  document.getElementById('win-title').textContent = playerId === 0 ? '🏆 Du gewinnst!' : `${p.emoji} ${p.name} gewinnt!`;
+  document.getElementById('win-msg').textContent = playerId === 0
+    ? 'Glückwunsch! Du hast den Stern erreicht! 🦕⭐'
+    : `${p.name} hat den Stern zuerst erreicht. Versuch es nochmal!`;
+  document.getElementById('overlay').classList.add('show');
+  state.rolling = true;
+}
+
+function nextTurn() {
+  state.currentPlayer = (state.currentPlayer + 1) % 3;
+  renderSidebar();
+  updateRollBtn();
+
+  const next = PLAYERS[state.currentPlayer];
+  if (!next.isHuman) {
+    setTimeout(() => cpuTurn(next.id), 800);
+  }
+}
+
+async function cpuTurn(playerId) {
+  await takeTurn(playerId);
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+initGame();
+</script>
+</body>
+</html>
