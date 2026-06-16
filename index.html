@@ -256,8 +256,8 @@
       <h2>📖 Legende</h2>
       <div id="legend">
         <div class="legend-row"><span class="legend-icon">🦕</span> Du (Dino)</div>
-        <div class="legend-row"><span class="legend-icon">🦖</span> CPU Gegner 1</div>
-        <div class="legend-row"><span class="legend-icon">🦎</span> CPU Gegner 2</div>
+        <div class="legend-row"><span class="legend-icon">🐉</span> CPU Drache</div>
+        <div class="legend-row"><span class="legend-icon">🐊</span> CPU Kroko</div>
         <div class="legend-row"><span class="legend-icon">⭐</span> Stern (Ziel) – bewegt sich!</div>
         <div class="legend-row"><span class="legend-icon">🍄</span> Pilz: Bei Wurf 2 → +3 Felder extra</div>
         <div class="legend-row"><span class="legend-icon">🗝️</span> Schlüssel: Öffnet Geheimtor</div>
@@ -273,8 +273,8 @@ const BOARD_SIZE = 100;
 const ITEMS = { mushroom: '🍄', key: '🗝️', doubleDice: '🎲', gate: '🚪' };
 const PLAYERS = [
   { id: 0, name: 'Du (Dino)', emoji: '🦕', cls: 'player', isHuman: true },
-  { id: 1, name: 'CPU Rex',   emoji: '🦖', cls: 'cpu1',   isHuman: false },
-  { id: 2, name: 'CPU Raptor',emoji: '🦎', cls: 'cpu2',   isHuman: false },
+  { id: 1, name: 'CPU Drache', emoji: '🐉', cls: 'cpu1',   isHuman: false },
+  { id: 2, name: 'CPU Kroko',  emoji: '🐊', cls: 'cpu2',   isHuman: false },
 ];
 
 let state = {};
